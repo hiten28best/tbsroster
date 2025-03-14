@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Scheduling</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         // Load employees from localStorage and update the schedule
         function loadEmployees() {
@@ -87,105 +88,40 @@
             calculatePayroll();  // Calculate payroll on initial load
         }
 
-        // Calculate payroll for each employee
-        function calculatePayroll() {
-            let rows = document.querySelectorAll(".employee-row");
+        // Function to generate PDF of the schedule with only employee names and times
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let yPosition = 10;
 
+            // Add a title to the PDF
+            doc.setFontSize(18);
+            doc.text("Employee Schedule", 20, yPosition);
+            yPosition += 10;
+
+            // Set font size for the table
+            doc.setFontSize(12);
+
+            // Loop through the employee rows to add name and schedule times
+            const rows = document.querySelectorAll(".employee-row");
             rows.forEach(row => {
-                let normalPayRate = parseFloat(row.getAttribute("data-normal-pay")) || 0;
-                let satPayRate = parseFloat(row.getAttribute("data-sat-pay")) || 0;
-                let sunPayRate = parseFloat(row.getAttribute("data-sun-pay")) || 0;
-
-                let totalHours = 0;
-                let totalPay = 0;
-                let normalHours = 0, satHours = 0, sunHours = 0;
-                let normalPay = 0, satPay = 0, sunPay = 0;
-
+                const name = row.querySelector("td").innerText;
+                let scheduleText = name + ": ";
+                
                 for (let i = 0; i < 7; i++) {
-                    let startInput = row.querySelector(`.start${i}`);
-                    let endInput = row.querySelector(`.end${i}`);
-
+                    const startInput = row.querySelector(`.start${i}`);
+                    const endInput = row.querySelector(`.end${i}`);
                     if (startInput.value && endInput.value) {
-                        let startTime = parseTime(startInput.value);
-                        let endTime = parseTime(endInput.value);
-                        let hoursWorked = Math.max(0, endTime - startTime);
-
-                        if (i === 5) { // Saturday
-                            satHours += hoursWorked;
-                            satPay += hoursWorked * satPayRate;
-                        } else if (i === 6) { // Sunday
-                            sunHours += hoursWorked;
-                            sunPay += hoursWorked * sunPayRate;
-                        } else { // Weekdays
-                            normalHours += hoursWorked;
-                            normalPay += hoursWorked * normalPayRate;
-                        }
-
-                        totalHours += hoursWorked;
+                        scheduleText += `${startInput.value} - ${endInput.value} `;
                     }
                 }
-
-                totalPay = normalPay + satPay + sunPay;
-
-                row.querySelector(".normal-hours").innerText = normalHours.toFixed(2);
-                row.querySelector(".normal-pay").innerText = "$" + normalPay.toFixed(2);
-                row.querySelector(".sat-hours").innerText = satHours.toFixed(2);
-                row.querySelector(".sat-pay").innerText = "$" + satPay.toFixed(2);
-                row.querySelector(".sun-hours").innerText = sunHours.toFixed(2);
-                row.querySelector(".sun-pay").innerText = "$" + sunPay.toFixed(2);
-                row.querySelector(".total-hours").innerText = totalHours.toFixed(2);
-                row.querySelector(".total-payroll").innerText = "$" + totalPay.toFixed(2);
-            });
-        }
-
-        // Parse time format (hh:mm) to decimal hours
-        function parseTime(time) {
-            let [hours, minutes] = time.split(":").map(Number);
-            return hours + minutes / 60;
-        }
-
-        // Save schedule to localStorage
-        function saveSchedule() {
-            let rows = document.querySelectorAll(".employee-row");
-            let schedule = [];
-
-            rows.forEach(row => {
-                let name = row.querySelector("td").innerText;
-                let times = [];
-
-                for (let i = 0; i < 7; i++) {
-                    let startInput = row.querySelector(`.start${i}`);
-                    let endInput = row.querySelector(`.end${i}`);
-
-                    times.push({
-                        start: startInput.value,
-                        end: endInput.value
-                    });
-                }
-
-                schedule.push({ name, times });
+                
+                doc.text(scheduleText, 20, yPosition);
+                yPosition += 10;
             });
 
-            localStorage.setItem("employeeSchedule", JSON.stringify(schedule));
-            alert("Schedule saved successfully!");
-        }
-
-        // Reset schedule to default (empty)
-        function resetSchedule() {
-            if (confirm("Are you sure you want to reset the schedule?")) {
-                let rows = document.querySelectorAll(".employee-row");
-                rows.forEach(row => {
-                    for (let i = 0; i < 7; i++) {
-                        let startInput = row.querySelector(`.start${i}`);
-                        let endInput = row.querySelector(`.end${i}`);
-                        startInput.value = "";
-                        endInput.value = "";
-                    }
-                });
-
-                localStorage.removeItem("employeeSchedule");  // Clear the schedule data from localStorage
-                alert("Schedule reset!");
-            }
+            // Save the PDF with the name "Employee_Schedule.pdf"
+            doc.save("Employee_Schedule.pdf");
         }
 
         // Load schedule on page load
@@ -234,6 +170,7 @@
     <button onclick="saveSchedule()">Save Schedule</button>
     <button onclick="resetSchedule()">Reset Schedule</button>  <!-- Reset Button -->
     <button onclick="calculatePayroll()">Calculate Payroll</button>  <!-- Calculate Payroll Button -->
+    <button onclick="generatePDF()">Print Schedule (PDF)</button>  <!-- Print PDF Button -->
 
 </body>
 </html>
