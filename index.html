@@ -5,249 +5,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Scheduling</title>
     <script>
-        // Function to load employees from localStorage
-        function loadEmployees() {
-            if (localStorage.getItem("updateSchedule") === "true") {
-                localStorage.removeItem("updateSchedule");
+        function updateDates() {
+            let startDate = new Date(document.getElementById('start-date').value);
+            let days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            for (let i = 0; i < 7; i++) {
+                let currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+                document.getElementById(`day${i}`).innerText = `${currentDate.toLocaleString('default', { month: 'short' })} ${currentDate.getDate()} (${days[currentDate.getDay()]})`;
             }
+        }
 
+        function calculatePayroll() {
+            let rows = document.querySelectorAll(".employee-row");
+            let totalHours = 0;
+            let totalPayroll = 0;
+
+            rows.forEach(row => {
+                let normalHours = 0, satHours = 0, sunHours = 0;
+                let normalPay = 0, satPay = 0, sunPay = 0;
+                let payrate = parseFloat(row.getAttribute("data-normal-pay"));
+                let satPayrate = parseFloat(row.getAttribute("data-sat-pay"));
+                let sunPayrate = parseFloat(row.getAttribute("data-sun-pay"));
+                
+                for (let i = 0; i < 7; i++) {
+                    let startTime = row.querySelector(`.start${i}`).value;
+                    let endTime = row.querySelector(`.end${i}`).value;
+                    
+                    if (startTime && endTime) {
+                        let start = new Date(`2000-01-01T${startTime}`);
+                        let end = new Date(`2000-01-01T${endTime}`);
+                        let hours = (end - start) / (1000 * 60 * 60);
+                        
+                        if (i < 5) normalHours += hours;
+                        else if (i === 5) satHours += hours;
+                        else if (i === 6) sunHours += hours;
+                    }
+                }
+
+                normalPay = normalHours * payrate;
+                satPay = satHours * satPayrate;
+                sunPay = sunHours * sunPayrate;
+                let totalEmpHours = normalHours + satHours + sunHours;
+                let totalEmpPay = normalPay + satPay + sunPay;
+                
+                row.querySelector(".normal-hours").innerText = normalHours.toFixed(2);
+                row.querySelector(".normal-pay").innerText = `$${normalPay.toFixed(2)}`;
+                row.querySelector(".sat-hours").innerText = satHours.toFixed(2);
+                row.querySelector(".sat-pay").innerText = `$${satPay.toFixed(2)}`;
+                row.querySelector(".sun-hours").innerText = sunHours.toFixed(2);
+                row.querySelector(".sun-pay").innerText = `$${sunPay.toFixed(2)}`;
+                row.querySelector(".total-hours").innerText = totalEmpHours.toFixed(2);
+                row.querySelector(".total-payroll").innerText = `$${totalEmpPay.toFixed(2)}`;
+                
+                totalHours += totalEmpHours;
+                totalPayroll += totalEmpPay;
+            });
+            
+            document.getElementById("total-hours").innerText = totalHours.toFixed(2);
+            document.getElementById("total-payroll").innerText = `$${totalPayroll.toFixed(2)}`;
+        }
+
+        window.addEventListener("storage", function() {
+            loadEmployees();
+        });
+
+        function loadEmployees() {
             let employees = JSON.parse(localStorage.getItem("employees")) || [];
-            let savedSchedule = JSON.parse(localStorage.getItem("employeeSchedule")) || [];
             let tableBody = document.querySelector("tbody");
 
             tableBody.innerHTML = ""; // Clear existing rows
 
             employees.forEach(emp => {
-                let savedEmployee = savedSchedule.find(e => e.name === emp.name) || { times: [] };
-
-                let row = document.createElement("tr");
-                row.classList.add("employee-row");
-                row.setAttribute("data-normal-pay", emp.normalPay);
-                row.setAttribute("data-sat-pay", emp.satPay);
-                row.setAttribute("data-sun-pay", emp.sunPay);
-
-                let nameCell = document.createElement("td");
-                nameCell.innerText = emp.name;
-                row.appendChild(nameCell);
-
-                for (let i = 0; i < 7; i++) {
-                    let cell = document.createElement("td");
-                    let startInput = document.createElement("input");
-                    startInput.type = "time";
-                    startInput.classList.add(`start${i}`);
-                    startInput.value = savedEmployee.times[i]?.start || "";
-
-                    let endInput = document.createElement("input");
-                    endInput.type = "time";
-                    endInput.classList.add(`end${i}`);
-                    endInput.value = savedEmployee.times[i]?.end || "";
-
-                    cell.appendChild(startInput);
-                    cell.appendChild(document.createTextNode(" - "));
-                    cell.appendChild(endInput);
-                    row.appendChild(cell);
-                }
-
-                let normalHoursCell = document.createElement("td");
-                normalHoursCell.classList.add("normal-hours");
-                row.appendChild(normalHoursCell);
-
-                let normalPayCell = document.createElement("td");
-                normalPayCell.classList.add("normal-pay");
-                row.appendChild(normalPayCell);
-
-                let satHoursCell = document.createElement("td");
-                satHoursCell.classList.add("sat-hours");
-                row.appendChild(satHoursCell);
-
-                let satPayCell = document.createElement("td");
-                satPayCell.classList.add("sat-pay");
-                row.appendChild(satPayCell);
-
-                let sunHoursCell = document.createElement("td");
-                sunHoursCell.classList.add("sun-hours");
-                row.appendChild(sunHoursCell);
-
-                let sunPayCell = document.createElement("td");
-                sunPayCell.classList.add("sun-pay");
-                row.appendChild(sunPayCell);
-
-                let totalHoursCell = document.createElement("td");
-                totalHoursCell.classList.add("total-hours");
-                row.appendChild(totalHoursCell);
-
-                let totalPayrollCell = document.createElement("td");
-                totalPayrollCell.classList.add("total-payroll");
-                row.appendChild(totalPayrollCell);
-
-                tableBody.appendChild(row);
-            });
-
-            calculatePayroll();  // Calculate payroll on initial load
-        }
-
-        // Calculate payroll for each employee
-        function calculatePayroll() {
-            let rows = document.querySelectorAll(".employee-row");
-
-            rows.forEach(row => {
-                let normalPayRate = parseFloat(row.getAttribute("data-normal-pay")) || 0;
-                let satPayRate = parseFloat(row.getAttribute("data-sat-pay")) || 0;
-                let sunPayRate = parseFloat(row.getAttribute("data-sun-pay")) || 0;
-
-                let totalHours = 0;
-                let totalPay = 0;
-                let normalHours = 0, satHours = 0, sunHours = 0;
-                let normalPay = 0, satPay = 0, sunPay = 0;
-
-                for (let i = 0; i < 7; i++) {
-                    let startInput = row.querySelector(`.start${i}`);
-                    let endInput = row.querySelector(`.end${i}`);
-
-                    if (startInput.value && endInput.value) {
-                        let startTime = parseTime(startInput.value);
-                        let endTime = parseTime(endInput.value);
-                        let hoursWorked = Math.max(0, endTime - startTime);
-
-                        if (i === 5) { // Saturday
-                            satHours += hoursWorked;
-                            satPay += hoursWorked * satPayRate;
-                        } else if (i === 6) { // Sunday
-                            sunHours += hoursWorked;
-                            sunPay += hoursWorked * sunPayRate;
-                        } else { // Weekdays
-                            normalHours += hoursWorked;
-                            normalPay += hoursWorked * normalPayRate;
-                        }
-
-                        totalHours += hoursWorked;
-                    }
-                }
-
-                totalPay = normalPay + satPay + sunPay;
-
-                row.querySelector(".normal-hours").innerText = normalHours.toFixed(2);
-                row.querySelector(".normal-pay").innerText = "$" + normalPay.toFixed(2);
-                row.querySelector(".sat-hours").innerText = satHours.toFixed(2);
-                row.querySelector(".sat-pay").innerText = "$" + satPay.toFixed(2);
-                row.querySelector(".sun-hours").innerText = sunHours.toFixed(2);
-                row.querySelector(".sun-pay").innerText = "$" + sunPay.toFixed(2);
-                row.querySelector(".total-hours").innerText = totalHours.toFixed(2);
-                row.querySelector(".total-payroll").innerText = "$" + totalPay.toFixed(2);
+                let row = `<tr class="employee-row" data-normal-pay="${emp.normalPay}" data-sat-pay="${emp.satPay}" data-sun-pay="${emp.sunPay}">
+                    <td>${emp.name}</td>
+                    <td><input type="time" class="start0"> - <input type="time" class="end0"></td>
+                    <td><input type="time" class="start1"> - <input type="time" class="end1"></td>
+                    <td><input type="time" class="start2"> - <input type="time" class="end2"></td>
+                    <td><input type="time" class="start3"> - <input type="time" class="end3"></td>
+                    <td><input type="time" class="start4"> - <input type="time" class="end4"></td>
+                    <td><input type="time" class="start5"> - <input type="time" class="end5"></td>
+                    <td><input type="time" class="start6"> - <input type="time" class="end6"></td>
+                    <td class="normal-hours"></td>
+                    <td class="normal-pay"></td>
+                    <td class="sat-hours"></td>
+                    <td class="sat-pay"></td>
+                    <td class="sun-hours"></td>
+                    <td class="sun-pay"></td>
+                    <td class="total-hours"></td>
+                    <td class="total-payroll"></td>
+                </tr>`;
+                tableBody.innerHTML += row;
             });
         }
 
-        // Parse time format (hh:mm) to decimal hours
-        function parseTime(time) {
-            let [hours, minutes] = time.split(":").map(Number);
-            return hours + minutes / 60;
-        }
-
-        // Save schedule to localStorage
-        function saveSchedule() {
-            let rows = document.querySelectorAll(".employee-row");
-            let schedule = [];
-
-            rows.forEach(row => {
-                let name = row.querySelector("td").innerText;
-                let times = [];
-
-                for (let i = 0; i < 7; i++) {
-                    let startInput = row.querySelector(`.start${i}`);
-                    let endInput = row.querySelector(`.end${i}`);
-
-                    times.push({
-                        start: startInput.value,
-                        end: endInput.value
-                    });
-                }
-
-                schedule.push({ name, times });
-            });
-
-            localStorage.setItem("employeeSchedule", JSON.stringify(schedule));
-            alert("Schedule saved successfully!");
-        }
-
-        // Reset schedule to default (empty)
-        function resetSchedule() {
-            if (confirm("Are you sure you want to reset the schedule?")) {
-                let rows = document.querySelectorAll(".employee-row");
-                rows.forEach(row => {
-                    for (let i = 0; i < 7; i++) {
-                        let startInput = row.querySelector(`.start${i}`);
-                        let endInput = row.querySelector(`.end${i}`);
-                        startInput.value = "";
-                        endInput.value = "";
-                    }
-                });
-
-                localStorage.removeItem("employeeSchedule");
-                alert("Schedule reset!");
-            }
-        }
-
-        // Function to calculate and display dates based on the start date
-        function displayWeekDates() {
-            let startDate = new Date(document.getElementById("start-date").value);
-            let dayOfWeek = startDate.getDay(); // Get day of the week (0-6 for Sun-Sat)
-
-            // Adjust to the previous Sunday (if not already Sunday)
-            startDate.setDate(startDate.getDate() - dayOfWeek);
-
-            let dateCells = document.querySelectorAll(".date-cell");
-
-            for (let i = 0; i < 7; i++) {
-                let dateCell = dateCells[i];
-                let currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + i);
-
-                let day = currentDate.getDate();
-                let month = currentDate.toLocaleString("default", { month: "short" });
-                let dayOfWeek = currentDate.toLocaleString("default", { weekday: "short" });
-
-                // Display in the format: "Mon (10 Mar)"
-                dateCell.innerText = `${dayOfWeek} (${month} ${day})`;
-            }
-        }
-
-        // Load schedule and dates on page load
-        window.onload = function () {
-            let savedStartDate = localStorage.getItem("startDate");
-            if (savedStartDate) {
-                document.getElementById("start-date").value = savedStartDate;
-            }
-
-            loadEmployees();
-            displayWeekDates();
-        };
-
-        // Event listener for start date change
-        document.getElementById("start-date").addEventListener("change", displayWeekDates);
+        window.onload = loadEmployees;
     </script>
 </head>
 <body>
-
     <h2>Employee Scheduling</h2>
-
-    <!-- Start Date Input -->
-    <label for="start-date">Start Date:</label>
-    <input type="date" id="start-date">
-    <br><br>
-
-    <!-- Week Dates Header -->
-    <div id="dates-header">
-        <span class="date-cell">Mon</span>
-        <span class="date-cell">Tue</span>
-        <span class="date-cell">Wed</span>
-        <span class="date-cell">Thu</span>
-        <span class="date-cell">Fri</span>
-        <span class="date-cell">Sat</span>
-        <span class="date-cell">Sun</span>
-    </div>
-    <br>
-
-    <!-- Table for scheduling -->
+    <label for="start-date">Select Start Date: </label>
+    <input type="date" id="start-date" onchange="updateDates()">
+    <button onclick="calculatePayroll()">Calculate Hours & Payroll</button>
     <table border="1">
         <thead>
             <tr>
@@ -270,18 +128,32 @@
             </tr>
         </thead>
         <tbody>
-            <!-- Employees will be loaded dynamically -->
+            <tr class="employee-row" data-normal-pay="20" data-sat-pay="25" data-sun-pay="30">
+                <td>John Doe</td>
+                <td><input type="time" class="start0"> - <input type="time" class="end0"></td>
+                <td><input type="time" class="start1"> - <input type="time" class="end1"></td>
+                <td><input type="time" class="start2"> - <input type="time" class="end2"></td>
+                <td><input type="time" class="start3"> - <input type="time" class="end3"></td>
+                <td><input type="time" class="start4"> - <input type="time" class="end4"></td>
+                <td><input type="time" class="start5"> - <input type="time" class="end5"></td>
+                <td><input type="time" class="start6"> - <input type="time" class="end6"></td>
+                <td class="normal-hours"></td>
+                <td class="normal-pay"></td>
+                <td class="sat-hours"></td>
+                <td class="sat-pay"></td>
+                <td class="sun-hours"></td>
+                <td class="sun-pay"></td>
+                <td class="total-hours"></td>
+                <td class="total-payroll"></td>
+            </tr>
         </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="14">Total</td>
+                <td id="total-hours"></td>
+                <td id="total-payroll"></td>
+            </tr>
+        </tfoot>
     </table>
-
-    <!-- Buttons -->
-    <button onclick="saveSchedule()">Save Schedule</button>
-    <button onclick="resetSchedule()">Reset Schedule</button>
-    <button onclick="calculatePayroll()">Calculate Payroll</button>
-    <br><br>
-
-    <!-- Add Employee Button -->
-    <button onclick="window.location.href='payrate.html'">Add Employee</button>
-
 </body>
 </html>
