@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Scheduling</title>
     <script>
-        // Load employees from localStorage and update the schedule
+        // Function to load employees from localStorage
         function loadEmployees() {
-            // Check if an update flag exists from payrate.html
             if (localStorage.getItem("updateSchedule") === "true") {
-                localStorage.removeItem("updateSchedule"); // Reset the flag
+                localStorage.removeItem("updateSchedule");
             }
 
             let employees = JSON.parse(localStorage.getItem("employees")) || [];
@@ -183,27 +182,69 @@
                     }
                 });
 
-                localStorage.removeItem("employeeSchedule");  // Clear the schedule data from localStorage
+                localStorage.removeItem("employeeSchedule");
                 alert("Schedule reset!");
             }
         }
 
-        // Load schedule on page load
+        // Function to calculate and display dates based on the start date
+        function displayWeekDates() {
+            let startDate = new Date(document.getElementById("start-date").value);
+            let dayOfWeek = startDate.getDay(); // Get day of the week (0-6 for Sun-Sat)
+
+            // Adjust to the previous Sunday (if not already Sunday)
+            startDate.setDate(startDate.getDate() - dayOfWeek);
+
+            let dateCells = document.querySelectorAll(".date-cell");
+
+            for (let i = 0; i < 7; i++) {
+                let dateCell = dateCells[i];
+                let currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+
+                let day = currentDate.getDate();
+                let month = currentDate.toLocaleString("default", { month: "short" });
+                dateCell.innerText = `${month} ${day}`;
+            }
+        }
+
+        // Load schedule and dates on page load
         window.onload = function () {
             let savedStartDate = localStorage.getItem("startDate");
             if (savedStartDate) {
                 document.getElementById("start-date").value = savedStartDate;
             }
+
             loadEmployees();
+            displayWeekDates();
         };
+
+        // Event listener for start date change
+        document.getElementById("start-date").addEventListener("change", displayWeekDates);
     </script>
 </head>
 <body>
 
     <h2>Employee Scheduling</h2>
+
+    <!-- Start Date Input -->
     <label for="start-date">Start Date:</label>
     <input type="date" id="start-date">
+    <br><br>
 
+    <!-- Week Dates Header -->
+    <div id="dates-header">
+        <span class="date-cell"></span>
+        <span class="date-cell"></span>
+        <span class="date-cell"></span>
+        <span class="date-cell"></span>
+        <span class="date-cell"></span>
+        <span class="date-cell"></span>
+        <span class="date-cell"></span>
+    </div>
+    <br>
+
+    <!-- Table for scheduling -->
     <table border="1">
         <thead>
             <tr>
@@ -232,8 +273,12 @@
 
     <!-- Buttons -->
     <button onclick="saveSchedule()">Save Schedule</button>
-    <button onclick="resetSchedule()">Reset Schedule</button>  <!-- Reset Button -->
-    <button onclick="calculatePayroll()">Calculate Payroll</button>  <!-- Calculate Payroll Button -->
+    <button onclick="resetSchedule()">Reset Schedule</button>
+    <button onclick="calculatePayroll()">Calculate Payroll</button>
+    <br><br>
+
+    <!-- Add Employee Button -->
+    <button onclick="window.location.href='payrate.html'">Add Employee</button>
 
 </body>
 </html>
