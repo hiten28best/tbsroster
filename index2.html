@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Scheduling</title>
+    <script>
+        function updateDates() {
+            let startDate = new Date(document.getElementById('start-date').value);
+            let days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            for (let i = 0; i < 7; i++) {
+                let currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+                document.getElementById(`day${i}`).innerText = `${currentDate.toLocaleString('default', { month: 'short' })} ${currentDate.getDate()} (${days[currentDate.getDay()]})`;
+            }
+        }
+
+        function calculatePayroll() {
+            let rows = document.querySelectorAll(".employee-row");
+            let totalHours = 0;
+            let totalPayroll = 0;
+
+            rows.forEach(row => {
+                let normalHours = 0, satHours = 0, sunHours = 0;
+                let normalPay = 0, satPay = 0, sunPay = 0;
+                let payrate = parseFloat(row.getAttribute("data-normal-pay"));
+                let satPayrate = parseFloat(row.getAttribute("data-sat-pay"));
+                let sunPayrate = parseFloat(row.getAttribute("data-sun-pay"));
+                
+                for (let i = 0; i < 7; i++) {
+                    let startTime = row.querySelector(`.start${i}`).value;
+                    let endTime = row.querySelector(`.end${i}`).value;
+                    
+                    if (startTime && endTime) {
+                        let start = new Date(`2000-01-01T${startTime}`);
+                        let end = new Date(`2000-01-01T${endTime}`);
+                        let hours = (end - start) / (1000 * 60 * 60);
+                        
+                        if (i < 5) normalHours += hours;
+                        else if (i === 5) satHours += hours;
+                        else if (i === 6) sunHours += hours;
+                    }
+                }
+
+                normalPay = normalHours * payrate;
+                satPay = satHours * satPayrate;
+                sunPay = sunHours * sunPayrate;
+                let totalEmpHours = normalHours + satHours + sunHours;
+                let totalEmpPay = normalPay + satPay + sunPay;
+                
+                row.querySelector(".normal-hours").innerText = normalHours.toFixed(2);
+                row.querySelector(".normal-pay").innerText = `$${normalPay.toFixed(2)}`;
+                row.querySelector(".sat-hours").innerText = satHours.toFixed(2);
+                row.querySelector(".sat-pay").innerText = `$${satPay.toFixed(2)}`;
+                row.querySelector(".sun-hours").innerText = sunHours.toFixed(2);
+                row.querySelector(".sun-pay").innerText = `$${sunPay.toFixed(2)}`;
+                row.querySelector(".total-hours").innerText = totalEmpHours.toFixed(2);
+                row.querySelector(".total-payroll").innerText = `$${totalEmpPay.toFixed(2)}`;
+                
+                totalHours += totalEmpHours;
+                totalPayroll += totalEmpPay;
+            });
+            
+            document.getElementById("total-hours").innerText = totalHours.toFixed(2);
+            document.getElementById("total-payroll").innerText = `$${totalPayroll.toFixed(2)}`;
+        }
+
+
+window.addEventListener("storage", function() {
+    loadEmployees();
+});
+
+function loadEmployees() {
+    let employees = JSON.parse(localStorage.getItem("employees")) || [];
+    let tableBody = document.querySelector("tbody");
+
+    tableBody.innerHTML = ""; // Clear existing rows
+
+    employees.forEach(emp => {
+        let row = `<tr class="employee-row" data-normal-pay="${emp.normalPay}" data-sat-pay="${emp.satPay}" data-sun-pay="${emp.sunPay}">
+            <td>${emp.name}</td>
+            <td><input type="time" class="start0"> - <input type="time" class="end0"></td>
+            <td><input type="time" class="start1"> - <input type="time" class="end1"></td>
+            <td><input type="time" class="start2"> - <input type="time" class="end2"></td>
+            <td><input type="time" class="start3"> - <input type="time" class="end3"></td>
+            <td><input type="time" class="start4"> - <input type="time" class="end4"></td>
+            <td><input type="time" class="start5"> - <input type="time" class="end5"></td>
+            <td><input type="time" class="start6"> - <input type="time" class="end6"></td>
+            <td class="normal-hours"></td>
+            <td class="normal-pay"></td>
+            <td class="sat-hours"></td>
+            <td class="sat-pay"></td>
+            <td class="sun-hours"></td>
+            <td class="sun-pay"></td>
+            <td class="total-hours"></td>
+            <td class="total-payroll"></td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    });
+}
+
+window.onload = loadEmployees;
+
+
+    </script>
+</head>
+<body>
+    <h2>Employee Scheduling</h2>
+    <label for="start-date">Select Start Date: </label>
+    <input type="date" id="start-date" onchange="updateDates()">
+    <button onclick="calculatePayroll()">Calculate Hours & Payroll</button>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Employee Name</th>
+                <th id="day0"></th>
+                <th id="day1"></th>
+                <th id="day2"></th>
+                <th id="day3"></th>
+                <th id="day4"></th>
+                <th id="day5"></th>
+                <th id="day6"></th>
+                <th>Normal Hours</th>
+                <th>Normal Pay</th>
+                <th>Sat Hours</th>
+                <th>Sat Pay</th>
+                <th>Sun Hours</th>
+                <th>Sun Pay</th>
+                <th>Total Hours</th>
+                <th>Total Payroll</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="employee-row" data-normal-pay="20" data-sat-pay="25" data-sun-pay="30">
+                <td>John Doe</td>
+                <td><input type="time" class="start0"> - <input type="time" class="end0"></td>
+                <td><input type="time" class="start1"> - <input type="time" class="end1"></td>
+                <td><input type="time" class="start2"> - <input type="time" class="end2"></td>
+                <td><input type="time" class="start3"> - <input type="time" class="end3"></td>
+                <td><input type="time" class="start4"> - <input type="time" class="end4"></td>
+                <td><input type="time" class="start5"> - <input type="time" class="end5"></td>
+                <td><input type="time" class="start6"> - <input type="time" class="end6"></td>
+                <td class="normal-hours"></td>
+                <td class="normal-pay"></td>
+                <td class="sat-hours"></td>
+                <td class="sat-pay"></td>
+                <td class="sun-hours"></td>
+                <td class="sun-pay"></td>
+                <td class="total-hours"></td>
+                <td class="total-payroll"></td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="14">Total</td>
+                <td id="total-hours"></td>
+                <td id="total-payroll"></td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>
