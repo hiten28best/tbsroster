@@ -204,7 +204,10 @@
 
                 let day = currentDate.getDate();
                 let month = currentDate.toLocaleString("default", { month: "short" });
-                dateCell.innerText = `${month} ${day}`;
+                let dayOfWeek = currentDate.toLocaleString("default", { weekday: "short" });
+
+                // Display in the format: "Mon (10 Mar)"
+                dateCell.innerText = `${dayOfWeek} (${month} ${day})`;
             }
         }
 
