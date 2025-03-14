@@ -84,7 +84,7 @@
                 tableBody.appendChild(row);
             });
 
-            calculatePayroll();
+            calculatePayroll();  // Calculate payroll on initial load
         }
 
         // Calculate payroll for each employee
@@ -230,8 +230,10 @@
         </tbody>
     </table>
 
+    <!-- Buttons -->
     <button onclick="saveSchedule()">Save Schedule</button>
-    <button onclick="resetSchedule()">Reset Schedule</button>  <!-- Reset Button Added -->
+    <button onclick="resetSchedule()">Reset Schedule</button>  <!-- Reset Button -->
+    <button onclick="calculatePayroll()">Calculate Payroll</button>  <!-- Calculate Payroll Button -->
 
 </body>
 </html>
