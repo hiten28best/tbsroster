@@ -88,36 +88,149 @@
             calculatePayroll();  // Calculate payroll on initial load
         }
 
-        // Function to generate PDF of the schedule with only employee names and times
+        // Function to calculate payroll for each employee
+        function calculatePayroll() {
+            let rows = document.querySelectorAll(".employee-row");
+
+            rows.forEach(row => {
+                let normalPayRate = parseFloat(row.getAttribute("data-normal-pay")) || 0;
+                let satPayRate = parseFloat(row.getAttribute("data-sat-pay")) || 0;
+                let sunPayRate = parseFloat(row.getAttribute("data-sun-pay")) || 0;
+
+                let totalHours = 0;
+                let totalPay = 0;
+                let normalHours = 0, satHours = 0, sunHours = 0;
+                let normalPay = 0, satPay = 0, sunPay = 0;
+
+                for (let i = 0; i < 7; i++) {
+                    let startInput = row.querySelector(`.start${i}`);
+                    let endInput = row.querySelector(`.end${i}`);
+
+                    if (startInput.value && endInput.value) {
+                        let startTime = parseTime(startInput.value);
+                        let endTime = parseTime(endInput.value);
+                        let hoursWorked = Math.max(0, endTime - startTime);
+
+                        if (i === 5) { // Saturday
+                            satHours += hoursWorked;
+                            satPay += hoursWorked * satPayRate;
+                        } else if (i === 6) { // Sunday
+                            sunHours += hoursWorked;
+                            sunPay += hoursWorked * sunPayRate;
+                        } else { // Weekdays
+                            normalHours += hoursWorked;
+                            normalPay += hoursWorked * normalPayRate;
+                        }
+
+                        totalHours += hoursWorked;
+                    }
+                }
+
+                totalPay = normalPay + satPay + sunPay;
+
+                row.querySelector(".normal-hours").innerText = normalHours.toFixed(2);
+                row.querySelector(".normal-pay").innerText = "$" + normalPay.toFixed(2);
+                row.querySelector(".sat-hours").innerText = satHours.toFixed(2);
+                row.querySelector(".sat-pay").innerText = "$" + satPay.toFixed(2);
+                row.querySelector(".sun-hours").innerText = sunHours.toFixed(2);
+                row.querySelector(".sun-pay").innerText = "$" + sunPay.toFixed(2);
+                row.querySelector(".total-hours").innerText = totalHours.toFixed(2);
+                row.querySelector(".total-payroll").innerText = "$" + totalPay.toFixed(2);
+            });
+        }
+
+        // Parse time format (hh:mm) to decimal hours
+        function parseTime(time) {
+            let [hours, minutes] = time.split(":").map(Number);
+            return hours + minutes / 60;
+        }
+
+        // Save schedule to localStorage
+        function saveSchedule() {
+            let rows = document.querySelectorAll(".employee-row");
+            let schedule = [];
+
+            rows.forEach(row => {
+                let name = row.querySelector("td").innerText;
+                let times = [];
+
+                for (let i = 0; i < 7; i++) {
+                    let startInput = row.querySelector(`.start${i}`);
+                    let endInput = row.querySelector(`.end${i}`);
+
+                    times.push({
+                        start: startInput.value,
+                        end: endInput.value
+                    });
+                }
+
+                schedule.push({ name, times });
+            });
+
+            localStorage.setItem("employeeSchedule", JSON.stringify(schedule));
+            alert("Schedule saved successfully!");
+        }
+
+        // Reset schedule to default (empty)
+        function resetSchedule() {
+            if (confirm("Are you sure you want to reset the schedule?")) {
+                let rows = document.querySelectorAll(".employee-row");
+                rows.forEach(row => {
+                    for (let i = 0; i < 7; i++) {
+                        let startInput = row.querySelector(`.start${i}`);
+                        let endInput = row.querySelector(`.end${i}`);
+                        startInput.value = "";
+                        endInput.value = "";
+                    }
+                });
+
+                localStorage.removeItem("employeeSchedule");  // Clear the schedule data from localStorage
+                alert("Schedule reset!");
+            }
+        }
+
+        // Function to generate PDF of the schedule in the table format
         function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            let yPosition = 10;
+            let yPosition = 20;
 
-            // Add a title to the PDF
-            doc.setFontSize(18);
-            doc.text("Employee Schedule", 20, yPosition);
-            yPosition += 10;
+            // Set up the table headers
+            const headers = ['Employee', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-            // Set font size for the table
+            // Create the table in the PDF
             doc.setFontSize(12);
+            doc.autoTable({
+                head: [headers],
+                body: [],
+                startY: yPosition,
+                theme: 'grid',
+                headStyles: { fillColor: [0, 100, 255] },
+                margin: { top: 20, left: 10, right: 10 },
+            });
 
-            // Loop through the employee rows to add name and schedule times
+            // Loop through the employee rows to add data (employee names and schedules)
             const rows = document.querySelectorAll(".employee-row");
             rows.forEach(row => {
                 const name = row.querySelector("td").innerText;
-                let scheduleText = name + ": ";
-                
+                let schedule = [];
                 for (let i = 0; i < 7; i++) {
                     const startInput = row.querySelector(`.start${i}`);
                     const endInput = row.querySelector(`.end${i}`);
                     if (startInput.value && endInput.value) {
-                        scheduleText += `${startInput.value} - ${endInput.value} `;
+                        schedule.push(`${startInput.value} - ${endInput.value}`);
+                    } else {
+                        schedule.push('');
                     }
                 }
-                
-                doc.text(scheduleText, 20, yPosition);
-                yPosition += 10;
+
+                // Add the row to the table in the PDF
+                doc.autoTable({
+                    body: [[name, ...schedule]],
+                    startY: doc.lastAutoTable.finalY + 10,
+                    theme: 'grid',
+                    margin: { top: 10, left: 10, right: 10 },
+                });
             });
 
             // Save the PDF with the name "Employee_Schedule.pdf"
