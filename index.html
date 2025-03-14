@@ -88,48 +88,36 @@
             calculatePayroll();  // Calculate payroll on initial load
         }
 
-        // Function to generate PDF of the schedule in the table format
+        // Function to generate PDF of the schedule with only employee names and times
         function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            let yPosition = 20;
+            let yPosition = 10;
 
-            // Set up the table headers
-            const headers = ['Employee', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            // Add a title to the PDF
+            doc.setFontSize(18);
+            doc.text("Employee Schedule", 20, yPosition);
+            yPosition += 10;
 
-            // Create the table in the PDF
+            // Set font size for the table
             doc.setFontSize(12);
-            doc.autoTable({
-                head: [headers],
-                body: [],
-                startY: yPosition,
-                theme: 'grid',
-                headStyles: { fillColor: [0, 100, 255] },
-                margin: { top: 20, left: 10, right: 10 },
-            });
 
-            // Loop through the employee rows to add data (employee names and schedules)
+            // Loop through the employee rows to add name and schedule times
             const rows = document.querySelectorAll(".employee-row");
             rows.forEach(row => {
                 const name = row.querySelector("td").innerText;
-                let schedule = [];
+                let scheduleText = name + ": ";
+                
                 for (let i = 0; i < 7; i++) {
                     const startInput = row.querySelector(`.start${i}`);
                     const endInput = row.querySelector(`.end${i}`);
                     if (startInput.value && endInput.value) {
-                        schedule.push(`${startInput.value} - ${endInput.value}`);
-                    } else {
-                        schedule.push('');
+                        scheduleText += `${startInput.value} - ${endInput.value} `;
                     }
                 }
-
-                // Add the row to the table in the PDF
-                doc.autoTable({
-                    body: [[name, ...schedule]],
-                    startY: doc.lastAutoTable.finalY + 10,
-                    theme: 'grid',
-                    margin: { top: 10, left: 10, right: 10 },
-                });
+                
+                doc.text(scheduleText, 20, yPosition);
+                yPosition += 10;
             });
 
             // Save the PDF with the name "Employee_Schedule.pdf"
