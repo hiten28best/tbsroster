@@ -170,6 +170,24 @@
             alert("Schedule saved successfully!");
         }
 
+        // Reset schedule to default (empty)
+        function resetSchedule() {
+            if (confirm("Are you sure you want to reset the schedule?")) {
+                let rows = document.querySelectorAll(".employee-row");
+                rows.forEach(row => {
+                    for (let i = 0; i < 7; i++) {
+                        let startInput = row.querySelector(`.start${i}`);
+                        let endInput = row.querySelector(`.end${i}`);
+                        startInput.value = "";
+                        endInput.value = "";
+                    }
+                });
+
+                localStorage.removeItem("employeeSchedule");  // Clear the schedule data from localStorage
+                alert("Schedule reset!");
+            }
+        }
+
         // Load schedule on page load
         window.onload = function () {
             let savedStartDate = localStorage.getItem("startDate");
@@ -213,6 +231,7 @@
     </table>
 
     <button onclick="saveSchedule()">Save Schedule</button>
+    <button onclick="resetSchedule()">Reset Schedule</button>  <!-- Reset Button Added -->
 
 </body>
 </html>
