@@ -7,7 +7,15 @@
     <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
+
+    <!-- Google Sign-In Button -->
+    <button onclick="signIn()">Sign in with Google</button>
+    <button onclick="signOut()" style="display:none;">Sign out</button>
+
     <h2>Employee Scheduling</h2>
+    <label for="start-date">Start Date:</label>
+    <input type="date" id="start-date">
+
     <table border="1">
         <thead>
             <tr>
@@ -22,14 +30,19 @@
             </tr>
         </thead>
         <tbody id="schedule-table">
-            <!-- Employee schedule will be loaded dynamically -->
+            <!-- Employees will be loaded dynamically -->
         </tbody>
     </table>
 
+    <!-- Buttons -->
     <button onclick="saveSchedule()">Save Schedule</button>
-
+    <button onclick="resetSchedule()">Reset Schedule</button>
+    
     <script>
         const SPREADSHEET_ID = "1NombWTsHDX-zvugvEYihqTld1mmh6_5dBI4R2bWipaw";
+        const API_KEY = "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";
+        const CLIENT_ID = "283451960307-saoo2f2fjnprpk9sleugnlc7757pt31d.apps.googleusercontent.com";
+        const SCOPES = "https://www.googleapis.com/auth/spreadsheets";
 
         function gapiLoad() {
             gapi.load("client:auth2", initClient);
@@ -37,44 +50,57 @@
 
         function initClient() {
             gapi.client.init({
-                apiKey: "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",
-                clientId: "283451960307-saoo2f2fjnprpk9sleugnlc7757pt31d.apps.googleusercontent.com",
+                apiKey: API_KEY,
+                clientId: CLIENT_ID,
                 discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
-                scope: "https://www.googleapis.com/auth/spreadsheets"
+                scope: SCOPES
             }).then(() => {
-                loadEmployees();
-            });
+                gapi.auth2.getAuthInstance().isSignedIn.listen(updateSignInStatus);
+                updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+            }).catch(error => console.error("Error initializing API:", error));
         }
 
-        function loadEmployees() {
+        function signIn() {
+            gapi.auth2.getAuthInstance().signIn();
+        }
+
+        function signOut() {
+            gapi.auth2.getAuthInstance().signOut();
+            document.querySelector("button[onclick='signOut()']").style.display = "none";
+        }
+
+        function updateSignInStatus(isSignedIn) {
+            if (isSignedIn) {
+                document.querySelector("button[onclick='signOut()']").style.display = "inline";
+                loadSchedule();
+            } else {
+                document.querySelector("button[onclick='signOut()']").style.display = "none";
+            }
+        }
+
+        function loadSchedule() {
             gapi.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
-                range: "Employees!A2:D"
+                range: "Schedule!A2:H"
             }).then(response => {
-                let employees = response.result.values || [];
+                let data = response.result.values || [];
                 let table = document.getElementById("schedule-table");
                 table.innerHTML = ""; // Clear table
 
-                employees.forEach(emp => {
-                    let row = document.createElement("tr");
-                    row.innerHTML = `<td>${emp[0]}</td>` + 
-                        Array(7).fill(0).map((_, i) => `<td><input type="time" class="start${i}"> - <input type="time" class="end${i}"></td>`).join('');
-                    table.appendChild(row);
+                data.forEach(row => {
+                    let tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${row[0]}</td>` + row.slice(1, 8).map(day => 
+                        `<td><input type="time" value="${day || ''}"></td>`).join('');
+                    table.appendChild(tr);
                 });
-            });
+            }).catch(error => console.error("Error loading schedule:", error));
         }
 
         function saveSchedule() {
             let rows = document.querySelectorAll("#schedule-table tr");
             let values = Array.from(rows).map(row => {
-                let name = row.cells[0].innerText;
-                let schedule = [];
-                for (let i = 1; i <= 7; i++) {
-                    let start = row.cells[i].querySelector("input:first-child").value || "";
-                    let end = row.cells[i].querySelector("input:last-child").value || "";
-                    schedule.push(`${start}-${end}`);
-                }
-                return [name, ...schedule];
+                let inputs = row.querySelectorAll("input");
+                return [row.cells[0].innerText, ...Array.from(inputs).map(input => input.value)];
             });
 
             gapi.client.sheets.spreadsheets.values.update({
@@ -82,20 +108,17 @@
                 range: "Schedule!A2:H",
                 valueInputOption: "RAW",
                 resource: { values: values }
-            }).then(() => {
-                alert("Schedule saved successfully!");
-            }).catch(error => {
-                console.error("Error saving schedule:", error);
-            });
+            }).then(() => alert("Schedule saved successfully!"))
+            .catch(error => console.error("Error saving schedule:", error));
         }
 
-        window.onload = function () {
-            if (localStorage.getItem("updateSchedule") === "true") {
-                localStorage.removeItem("updateSchedule"); // Clear flag
-                location.reload();
+        function resetSchedule() {
+            if (confirm("Are you sure you want to reset the schedule?")) {
+                document.querySelectorAll("#schedule-table input").forEach(input => input.value = "");
             }
-            gapiLoad();
-        };
+        }
+
+        gapiLoad();
     </script>
 </body>
 </html>
