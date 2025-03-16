@@ -3,151 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Pay Rates</title>
-    <script>
-        // Function to display employees in the table
-        function displayEmployees() {
-            let employees = JSON.parse(localStorage.getItem("employees")) || [];
-            console.log("Employees retrieved from localStorage:", employees);  // Debugging log
-
-            let tableBody = document.getElementById("employee-table-body");
-            tableBody.innerHTML = ""; // Clear existing rows
-
-            if (employees.length === 0) {
-                console.log("No employees found.");  // Debugging log
-            }
-
-            employees.forEach((emp, index) => {
-                // Ensure that pay values are numbers, and fix any issues with incorrect types
-                let normalPay = parseFloat(emp.normalPay);
-                let satPay = parseFloat(emp.satPay);
-                let sunPay = parseFloat(emp.sunPay);
-
-                // Handle the case where the pay rates may not be valid numbers
-                if (isNaN(normalPay) || isNaN(satPay) || isNaN(sunPay)) {
-                    console.error("Invalid pay rates for employee:", emp);
-                    return; // Skip this entry if invalid pay rates
-                }
-
-                let row = `<tr>
-                    <td>${emp.name}</td>
-                    <td>$${normalPay.toFixed(2)}</td>
-                    <td>$${satPay.toFixed(2)}</td>
-                    <td>$${sunPay.toFixed(2)}</td>
-                    <td><button onclick="confirmRemoveEmployee(${index}, '${emp.name}')">Remove</button></td>
-                </tr>`;
-                tableBody.innerHTML += row;
-            });
-        }
-
-        // Function to add a new employee
-        function addEmployee() {
-            let name = document.getElementById("emp-name").value.trim();
-            let normalPay = parseFloat(document.getElementById("normal-pay").value);
-            let satPay = parseFloat(document.getElementById("sat-pay").value);
-            let sunPay = parseFloat(document.getElementById("sun-pay").value);
-
-            if (name === "" || isNaN(normalPay) || isNaN(satPay) || isNaN(sunPay)) {
-                alert("Please fill all fields correctly.");
-                return;
-            }
-
-            let employee = { name, normalPay, satPay, sunPay };
-            let employees = JSON.parse(localStorage.getItem("employees")) || [];
-            employees.push(employee);
-            localStorage.setItem("employees", JSON.stringify(employees));
-
-            console.log("New employee added:", employee);  // Debugging log
-
-            // Clear input fields after adding employee
-            document.getElementById("emp-name").value = "";
-            document.getElementById("normal-pay").value = "";
-            document.getElementById("sat-pay").value = "";
-            document.getElementById("sun-pay").value = "";
-
-            closeForm();
-            displayEmployees();  // Refresh the table immediately
-            updatePage1();  // Notify scheduling page to update
-        }
-
-        // Notify scheduling page to update employees list
-        function updatePage1() {
-            localStorage.setItem("updateSchedule", "true"); // Flag for scheduling.html to reload employee list
-        }
-
-        // Function to confirm removal of an employee
-        function confirmRemoveEmployee(index, empName) {
-            if (confirm(`Do you confirm you want to remove ${empName}?`)) {
-                removeEmployee(index);
-            }
-        }
-
-        // Function to remove an employee
-        function removeEmployee(index) {
-            let employees = JSON.parse(localStorage.getItem("employees")) || [];
-            employees.splice(index, 1);  // Remove employee at the given index
-            localStorage.setItem("employees", JSON.stringify(employees));  // Update localStorage
-
-            console.log(`Employee at index ${index} removed`);  // Debugging log
-            displayEmployees();  // Refresh the table after removal
-            updatePage1();  // Notify scheduling page to update
-        }
-
-        // Function to show the employee form
-        function openForm() {
-            document.getElementById("employee-form").style.display = "block";
-        }
-
-        // Function to hide the employee form
-        function closeForm() {
-            document.getElementById("employee-form").style.display = "none";
-        }
-
-        // Load employees when the page loads
-        window.onload = function() {
-            displayEmployees();
-        };
-    </script>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        button { padding: 10px; margin-bottom: 10px; }
-        #employee-form { display: none; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; width: 300px; }
-    </style>
+    <title>Pay Rate Management</title>
+    <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
-
     <h2>Employee Pay Rates</h2>
-    <button onclick="openForm()">Set up New Employee</button>
-
-    <!-- Employee Form -->
-    <div id="employee-form">
-        <h3>Add Employee</h3>
-        <label>Name: <input type="text" id="emp-name"></label><br><br>
-        <label>Normal Payrate: <input type="number" id="normal-pay"></label><br><br>
-        <label>Saturday Payrate: <input type="number" id="sat-pay"></label><br><br>
-        <label>Sunday Payrate: <input type="number" id="sun-pay"></label><br><br>
-        <button onclick="addEmployee()">Submit</button>
-        <button onclick="closeForm()">Cancel</button>
-    </div>
-
-    <!-- Employee Table -->
-    <table>
+    <table border="1">
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Normal Payrate</th>
-                <th>Saturday Payrate</th>
-                <th>Sunday Payrate</th>
-                <th>Actions</th>
+                <th>Employee Name</th>
+                <th>Normal Pay</th>
+                <th>Saturday Pay</th>
+                <th>Sunday Pay</th>
             </tr>
         </thead>
-        <tbody id="employee-table-body">
-            <!-- Employees will be dynamically added here -->
+        <tbody id="payrate-table">
+            <!-- Employee data will be loaded dynamically -->
         </tbody>
     </table>
 
+    <button onclick="saveEmployeeData()">Save Employees</button>
+
+    <script>
+        const SPREADSHEET_ID = "1NombWTsHDX-zvugvEYihqTld1mmh6_5dBI4R2bWipaw";
+        const API_KEY = "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";
+        const CLIENT_ID = "283451960307-saoo2f2fjnprpk9sleugnlc7757pt31d.apps.googleusercontent.com";
+        const SCOPES = "https://www.googleapis.com/auth/spreadsheets";
+
+        function gapiLoad() {
+            gapi.load("client:auth2", initClient);
+        }
+
+        function initClient() {
+            gapi.client.init({
+                apiKey: API_KEY,
+                clientId: CLIENT_ID,
+                discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+                scope: SCOPES
+            }).then(() => {
+                loadEmployees();
+            });
+        }
+
+        function loadEmployees() {
+            gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: "Employees!A2:D"
+            }).then(response => {
+                let employees = response.result.values || [];
+                let table = document.getElementById("payrate-table");
+                table.innerHTML = ""; // Clear table
+
+                employees.forEach(emp => {
+                    let row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td><input type="text" value="${emp[0]}" class="emp-name"></td>
+                        <td><input type="number" value="${emp[1]}" class="emp-pay"></td>
+                        <td><input type="number" value="${emp[2]}" class="emp-sat-pay"></td>
+                        <td><input type="number" value="${emp[3]}" class="emp-sun-pay"></td>
+                    `;
+                    table.appendChild(row);
+                });
+            });
+        }
+
+        function saveEmployeeData() {
+            let rows = document.querySelectorAll("#payrate-table tr");
+            let values = Array.from(rows).map(row => {
+                let inputs = row.querySelectorAll("input");
+                return [inputs[0].value, inputs[1].value, inputs[2].value, inputs[3].value];
+            });
+
+            gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: SPREADSHEET_ID,
+                range: "Employees!A2:D",
+                valueInputOption: "RAW",
+                resource: { values: values }
+            }).then(() => {
+                alert("Employees updated successfully!");
+                localStorage.setItem("updateSchedule", "true"); // Notify employee scheduling page
+            }).catch(error => {
+                console.error("Error updating employees:", error);
+            });
+        }
+
+        gapiLoad();
+    </script>
 </body>
 </html>
