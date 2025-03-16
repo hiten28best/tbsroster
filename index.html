@@ -246,6 +246,11 @@
             loadEmployees();
         };
     </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Schedule</title>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="app.js"></script>
 </head>
 <body>
 
@@ -276,6 +281,11 @@
     <button onclick="resetSchedule()">Reset Schedule</button>  <!-- Reset Button -->
     <button onclick="calculatePayroll()">Calculate Payroll</button>  <!-- Calculate Payroll Button -->
     <button onclick="generatePDF()">Print Schedule (PDF)</button>  <!-- Print PDF Button -->
+<h1>Employee Schedule</h1>
+    <table id="schedule-table">
+        <!-- The schedule data will be populated here -->
+    </table>
 
+    <button onclick="signIn()">Sign In with Google</button>
 </body>
 </html>
