@@ -15,6 +15,7 @@
                 <th>Normal Pay</th>
                 <th>Saturday Pay</th>
                 <th>Sunday Pay</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody id="payrate-table">
@@ -22,6 +23,7 @@
         </tbody>
     </table>
 
+    <button onclick="addEmployee()">Add Employee</button>
     <button onclick="saveEmployeeData()">Save Employees</button>
 
     <script>
@@ -42,6 +44,8 @@
                 scope: SCOPES
             }).then(() => {
                 loadEmployees();
+            }).catch(error => {
+                console.error("Error initializing Google API:", error);
             });
         }
 
@@ -54,17 +58,31 @@
                 let table = document.getElementById("payrate-table");
                 table.innerHTML = ""; // Clear table
 
-                employees.forEach(emp => {
-                    let row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td><input type="text" value="${emp[0]}" class="emp-name"></td>
-                        <td><input type="number" value="${emp[1]}" class="emp-pay"></td>
-                        <td><input type="number" value="${emp[2]}" class="emp-sat-pay"></td>
-                        <td><input type="number" value="${emp[3]}" class="emp-sun-pay"></td>
-                    `;
-                    table.appendChild(row);
-                });
+                employees.forEach(emp => addEmployeeRow(emp[0], emp[1], emp[2], emp[3]));
+            }).catch(error => {
+                console.error("Error loading employees:", error);
             });
+        }
+
+        function addEmployee() {
+            addEmployeeRow("", "", "", "");
+        }
+
+        function addEmployeeRow(name, normalPay, satPay, sunPay) {
+            let table = document.getElementById("payrate-table");
+            let row = document.createElement("tr");
+            row.innerHTML = `
+                <td><input type="text" value="${name}" class="emp-name"></td>
+                <td><input type="number" value="${normalPay}" class="emp-pay"></td>
+                <td><input type="number" value="${satPay}" class="emp-sat-pay"></td>
+                <td><input type="number" value="${sunPay}" class="emp-sun-pay"></td>
+                <td><button onclick="removeEmployee(this)">❌</button></td>
+            `;
+            table.appendChild(row);
+        }
+
+        function removeEmployee(button) {
+            button.parentElement.parentElement.remove();
         }
 
         function saveEmployeeData() {
