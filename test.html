@@ -1,156 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Scheduling</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
-            margin: 0;
-            padding: 0;
-        }
-
-        header {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            padding: 20px;
-        }
-
-        main {
-            width: 80%;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        form {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin: 10px 0 5px;
-        }
-
-        input {
-            padding: 8px;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 10px;
-        }
-
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-
-        th {
-            background-color: #333;
-            color: white;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Scheduling</title>
+  <style>
+    /* Add your CSS styles here (same as before) */
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Employee Scheduling</h1>
-    </header>
+  <div class="container">
+    <h1>Employee Scheduling</h1>
 
-    <main>
-        <form id="scheduleForm">
-            <label for="employeeName">Employee Name:</label>
-            <input type="text" id="employeeName" required>
+    <!-- Add Employee Form -->
+    <div class="form-container">
+      <h2>Add Employee</h2>
+      <form id="addEmployeeForm">
+        <label for="employeeName">Employee Name:</label>
+        <input type="text" id="employeeName" name="employeeName" required>
+        
+        <label for="employeeRole">Role:</label>
+        <input type="text" id="employeeRole" name="employeeRole" required>
+        
+        <button type="submit">Add Employee</button>
+      </form>
+    </div>
 
-            <label for="shiftDate">Shift Date:</label>
-            <input type="date" id="shiftDate" required>
+    <!-- Schedule Shifts Form -->
+    <div class="form-container">
+      <h2>Schedule Shifts</h2>
+      <form id="scheduleShiftForm">
+        <label for="employeeSelect">Employee:</label>
+        <select id="employeeSelect" name="employeeSelect" required>
+          <!-- Employees will be dynamically added here -->
+        </select>
+        
+        <label for="shiftDate">Date:</label>
+        <input type="date" id="shiftDate" name="shiftDate" required>
+        
+        <label for="shiftTime">Time:</label>
+        <input type="time" id="shiftTime" name="shiftTime" required>
+        
+        <button type="submit">Schedule Shift</button>
+      </form>
+    </div>
 
-            <label for="shiftTime">Shift Time:</label>
-            <input type="text" id="shiftTime" required placeholder="e.g., 9 AM - 5 PM">
+    <!-- Display Schedule -->
+    <div class="schedule-container">
+      <h2>Employee Schedule</h2>
+      <table id="scheduleTable">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Role</th>
+            <th>Date</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Scheduled shifts will be dynamically added here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-            <button type="submit">Add Shift</button>
-        </form>
+  <script>
+    // Google Sheets API configuration
+    const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID'; // Replace with your Google Sheet ID
+    const API_KEY = 'YOUR_API_KEY'; // Replace with your Google Sheets API key
+    const SHEET_NAME = 'Sheet1'; // Replace with your sheet name
 
-        <h2>Upcoming Shifts</h2>
-        <table id="scheduleTable">
-            <thead>
-                <tr>
-                    <th>Employee Name</th>
-                    <th>Shift Date</th>
-                    <th>Shift Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Shifts will be dynamically added here -->
-            </tbody>
-        </table>
-    </main>
+    // Function to fetch data from Google Sheets
+    async function fetchData() {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data.values || [];
+    }
 
-    <script>
-        document.getElementById('scheduleForm').addEventListener('submit', function(event) {
-            event.preventDefault();
+    // Function to append data to Google Sheets
+    async function appendData(row) {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}:append?valueInputOption=USER_ENTERED&key=${API_KEY}`;
+      const body = {
+        values: [row],
+      };
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      return response.json();
+    }
 
-            const employeeName = document.getElementById('employeeName').value;
-            const shiftDate = document.getElementById('shiftDate').value;
-            const shiftTime = document.getElementById('shiftTime').value;
+    // DOM Elements
+    const addEmployeeForm = document.getElementById('addEmployeeForm');
+    const scheduleShiftForm = document.getElementById('scheduleShiftForm');
+    const employeeSelect = document.getElementById('employeeSelect');
+    const scheduleTable = document.getElementById('scheduleTable').getElementsByTagName('tbody')[0];
 
-            // Create a new row in the schedule table
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td>${employeeName}</td>
-                <td>${shiftDate}</td>
-                <td>${shiftTime}</td>
-            `;
-            document.querySelector('#scheduleTable tbody').appendChild(newRow);
+    // Load data from Google Sheets on page load
+    window.addEventListener('load', async () => {
+      const data = await fetchData();
+      data.slice(1).forEach(row => {
+        const [name, role, date, time] = row;
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        employeeSelect.appendChild(option);
 
-            // Send data to Google Sheets
-            sendDataToGoogleSheets(employeeName, shiftDate, shiftTime);
+        const tableRow = document.createElement('tr');
+        tableRow.innerHTML = `
+          <td>${name}</td>
+          <td>${role}</td>
+          <td>${date}</td>
+          <td>${time}</td>
+        `;
+        scheduleTable.appendChild(tableRow);
+      });
+    });
 
-            // Reset form fields
-            document.getElementById('scheduleForm').reset();
-        });
+    // Add Employee
+    addEmployeeForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
 
-        // Function to send form data to Google Sheets
-        function sendDataToGoogleSheets(employeeName, shiftDate, shiftTime) {
-            const data = {
-                employeeName: employeeName,
-                shiftDate: shiftDate,
-                shiftTime: shiftTime
-            };
+      const employeeName = document.getElementById('employeeName').value;
+      const employeeRole = document.getElementById('employeeRole').value;
 
-            fetch("https://script.google.com/macros/s/AKfycby0MZtttOXhkgfqXceKdLW_CZMXl0oc0bvSsA3N_aFaZC4athnAaxSbmInokGClDTE/exec", {
-                method: 'POST',
-                body: JSON.stringify(data),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(responseData => {
-                console.log('Data saved to Google Sheets:', responseData);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-    </script>
+      // Add employee to Google Sheets
+      await appendData([employeeName, employeeRole, '', '']);
+
+      // Add employee to the dropdown
+      const option = document.createElement('option');
+      option.value = employeeName;
+      option.textContent = employeeName;
+      employeeSelect.appendChild(option);
+
+      // Clear the form
+      addEmployeeForm.reset();
+    });
+
+    // Schedule Shift
+    scheduleShiftForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const employeeName = document.getElementById('employeeSelect').value;
+      const shiftDate = document.getElementById('shiftDate').value;
+      const shiftTime = document.getElementById('shiftTime').value;
+
+      // Add shift to Google Sheets
+      await appendData([employeeName, '', shiftDate, shiftTime]);
+
+      // Update the schedule table
+      const tableRow = document.createElement('tr');
+      tableRow.innerHTML = `
+        <td>${employeeName}</td>
+        <td></td>
+        <td>${shiftDate}</td>
+        <td>${shiftTime}</td>
+      `;
+      scheduleTable.appendChild(tableRow);
+
+      // Clear the form
+      scheduleShiftForm.reset();
+    });
+  </script>
 </body>
 </html>
