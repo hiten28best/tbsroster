@@ -1,9 +1,9 @@
 // Your Google Sheets ID (can be found in the URL of your sheet)
-const SPREADSHEET_ID = 'your-spreadsheet-id'; // Replace with your actual spreadsheet ID
+const SPREADSHEET_ID = '1NombWTsHDX-zvugvEYihqTld1mmh6_5dBI4R2bWipaw'; // Replace with your actual spreadsheet ID
 
 // Set up the OAuth Client ID and API scope
-const CLIENT_ID = 'your-client-id'; // Replace with your client ID from Google Developer Console
-const API_KEY = 'your-api-key'; // Replace with your API key
+const CLIENT_ID = '283451960307-saoo2f2fjnprpk9sleugnlc7757pt31d.apps.googleusercontent.com'; // Replace with your client ID from Google Developer Console
+const API_KEY = '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'; // Replace with your API key
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/spreadsheets';
 
 // Load the Google API Client
