@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Scheduling</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        main {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input {
+            padding: 8px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Employee Scheduling</h1>
+    </header>
+
+    <main>
+        <form id="scheduleForm">
+            <label for="employeeName">Employee Name:</label>
+            <input type="text" id="employeeName" required>
+
+            <label for="shiftDate">Shift Date:</label>
+            <input type="date" id="shiftDate" required>
+
+            <label for="shiftTime">Shift Time:</label>
+            <input type="text" id="shiftTime" required placeholder="e.g., 9 AM - 5 PM">
+
+            <button type="submit">Add Shift</button>
+        </form>
+
+        <h2>Upcoming Shifts</h2>
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Shift Date</th>
+                    <th>Shift Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Shifts will be dynamically added here -->
+            </tbody>
+        </table>
+    </main>
+
+    <script>
+        document.getElementById('scheduleForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const employeeName = document.getElementById('employeeName').value;
+            const shiftDate = document.getElementById('shiftDate').value;
+            const shiftTime = document.getElementById('shiftTime').value;
+
+            // Create a new row in the schedule table
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${employeeName}</td>
+                <td>${shiftDate}</td>
+                <td>${shiftTime}</td>
+            `;
+            document.querySelector('#scheduleTable tbody').appendChild(newRow);
+
+            // Send data to Google Sheets
+            sendDataToGoogleSheets(employeeName, shiftDate, shiftTime);
+
+            // Reset form fields
+            document.getElementById('scheduleForm').reset();
+        });
+
+        // Function to send form data to Google Sheets
+        function sendDataToGoogleSheets(employeeName, shiftDate, shiftTime) {
+            const data = {
+                employeeName: employeeName,
+                shiftDate: shiftDate,
+                shiftTime: shiftTime
+            };
+
+            fetch("https://script.google.com/macros/s/AKfycby0MZtttOXhkgfqXceKdLW_CZMXl0oc0bvSsA3N_aFaZC4athnAaxSbmInokGClDTE/exec", {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(responseData => {
+                console.log('Data saved to Google Sheets:', responseData);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
